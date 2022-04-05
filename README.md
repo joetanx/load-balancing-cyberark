@@ -111,6 +111,10 @@ vrrp_instance VI_1 {
 
 ## Prepare the Notification and Tracking Scripts
 
+☝️ **Note**: keepalived scripts should be placed in `/usr/libexec/keepalived/` where the correct SELinux file context `keepalived_unconfined_script_t` is assigned
+- Trying to get keepalive to run scripts from elsewhere may result in `permission denied` errors
+- Google for `keepalive setenforce 0` and you find that many guides disable SELinux - this script-doesn't-run behaviour is one of the reasons for disabling SELinux
+
 ### Tracking Script
 - Prepare the HA check script **on both nodes**
 ```console
@@ -123,7 +127,6 @@ curl -Lk https://192.168.0.10 -o /dev/null -s
 exit $?
 ```
 - Add executable permission to script
-- ☝️ **Note**: keepalived scripts should be placed in `/usr/libexec/keepalived/` where the correct SELinux file context `keepalived_unconfined_script_t` is assigned; you may encounter `permission denied` errors if you try to get keepalive to run scripts from elsewhere
 ```console
 chmod +x /usr/libexec/keepalived/nginx-ha-check.sh
 ```
@@ -157,7 +160,6 @@ case $STATE in
 esac
 ```
 - Add executable permission to script
-- ☝️ **Note**: keepalived scripts should be placed in `/usr/libexec/keepalived/` where the correct SELinux file context `keepalived_unconfined_script_t` is assigned; you may encounter `permission denied` errors if you try to get keepalive to run scripts from elsewhere
 ```console
 chmod +x /usr/libexec/keepalived/nginx-ha-notify.sh
 ```
