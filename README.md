@@ -1,27 +1,191 @@
 # Overview
 ![image](images/architecture.png)
 
-# Keepalived Configuration
+# Keepalived Setup
 
-# NGINX Configuration
+## Install keepalived on both nodes
+```console
+yum -y install keepalived
+```
+- Edit the keepalived config file `/etc/keepalived/keepalived.conf` **on both nodes**
+  - The respective reference config files for master and backup nodes are in the next [Keepalived Configuration Files Section](#keepalived-configuration-files)
+```console
+mv /etc/keepalived/keepalived.conf /etc/keepalived/keepalived.conf.bak
+vi /etc/keepalived/keepalived.conf
+```
 
+## Keepalived Configuration Files
+
+<details>
+<summary>Master Node Configuration</summary>
+
+```console
+global_defs{
+    script_user root
+    enable_script_security
+}
+vrrp_script check_vip_health {
+    script "/usr/libexec/keepalived/nginx-ha-check.sh"
+    interval 10
+    weight   50
+}
+vrrp_instance VI_1 {
+    state MASTER
+    interface eth0
+    virtual_router_id 10
+    priority 100
+    advert_int 1
+    unicast_src_ip 192.168.0.91/24
+    unicast_peer {
+        192.168.0.92/24
+    }
+    virtual_ipaddress {
+        192.168.0.10/24
+        192.168.0.20/24
+        192.168.0.30/24
+        192.168.0.40/24
+        192.168.0.50/24
+    }
+    authentication {
+        auth_type PASS
+        auth_pass cyberark
+    }
+    track_script {
+        check_vip_health
+    }
+    notify "/usr/libexec/keepalived/nginx-ha-notify.sh"
+}
+```
+
+</details>
+
+<details>
+<summary>Backup Node Configuration</summary>
+
+```console
+global_defs{
+    script_user root
+    enable_script_security
+}
+vrrp_script check_vip_health {
+    script "/usr/libexec/keepalived/nginx-ha-check.sh"
+    interval 10
+    weight   50
+}
+vrrp_instance VI_1 {
+    state BACKUP
+    interface eth0
+    virtual_router_id 10
+    priority 90
+    advert_int 1
+    unicast_src_ip 192.168.0.92/24
+    unicast_peer {
+        192.168.0.91/24
+    }
+    virtual_ipaddress {
+        192.168.0.10/24
+        192.168.0.20/24
+        192.168.0.30/24
+        192.168.0.40/24
+        192.168.0.50/24
+    }
+    authentication {
+        auth_type PASS
+        auth_pass cyberark
+    }
+    track_script {
+        check_vip_health
+    }
+    notify "/usr/libexec/keepalived/nginx-ha-notify.sh"
+}
+```
+
+</details>
+
+## Prepare the Notification and Tracking Scripts
+
+### Tracking Script
+- Prepare the HA check script **on both nodes**
+```console
+vi /usr/libexec/keepalived/nginx-ha-check.sh
+```
+- The HA check script will `curl` to the PVWA virtual IP - thsi script returns `0` if curl is successful
+```console
+#!/bin/bash
+curl -Lk https://192.168.0.10 -o /dev/null -s
+exit $?
+```
+- Add executable permission to script
+- ☝️ **Note**: keepalived scripts should be placed in `/usr/libexec/keepalived/` where the correct SELinux file context `keepalived_unconfined_script_t` is assigned; you may encounter `permission denied` errors if you try to get keepalive to run scripts from elsewhere
+```console
+chmod +x /usr/libexec/keepalived/nginx-ha-check.sh
+```
+
+### Notification Script
+- Prepare the HA notify script **on both nodes**
+```console
+vi /usr/libexec/keepalived/nginx-ha-notify.sh
+```
+- The HA notify script will start the nginx service when the node state changes to master, and stop the nginx service when the node state changes to backup or fault
+```console
+#!/bin/bash
+TYPE=$1
+NAME=$2
+STATE=$3
+case $STATE in
+  "MASTER")
+    systemctl start nginx
+    logger -t nginx-ha-keepalived "VRRP $TYPE $NAME changed to $STATE state"
+    exit 0
+    ;;
+  "BACKUP"|"FAULT")
+    systemctl stop nginx
+    logger -t nginx-ha-keepalived "VRRP $TYPE $NAME changed to $STATE state"
+    exit 0
+    ;;
+  *)
+    logger -t nginx-ha-keepalived "Unknown state $STATE for VRRP $TYPE $NAME"
+    exit 1
+    ;;
+esac
+```
+- Add executable permission to script
+- ☝️ **Note**: keepalived scripts should be placed in `/usr/libexec/keepalived/` where the correct SELinux file context `keepalived_unconfined_script_t` is assigned; you may encounter `permission denied` errors if you try to get keepalive to run scripts from elsewhere
+```console
+chmod +x /usr/libexec/keepalived/nginx-ha-notify.sh
+```
+
+## Start Keepalived
+- Allow VRRP communication through firewall and start keepalived service **on both nodes**
+```console
+firewall-cmd --add-rich-rule='rule protocol value="vrrp" accept' --permanent
+firewall-cmd --reload
+systemctl enable --now keepalived
+```
+
+# NGINX Setup
+
+- Install NGINX, enable NGINX to listen on ports in SELinux, add firewall rules
 ```console
 yum -y install nginx
 setsebool -P httpd_can_network_connect on
 firewall-cmd --permanent --add-service https && firewall-cmd --reload
+```
+- Edit the NGINX listener and load balancing config file `/etc/nginx/nginx.conf`
+  - The respective reference config files for PVWA, PSM, PSMGW, CCP and Conjur are in below [NGINX Configuration Files Section](#nginx-configuration-files)
+```console
 mv /etc/nginx/nginx.conf /etc/nginx/nginx.conf.bak
 vi /etc/nginx/nginx.conf
 nginx -t
-systemctl enable --now nginx
 ```
+- ☝️ **Note**: Do not start or enable the nginx service, the nginix service start/stop are controlled by `nginx-ha-notify` script in keepalived
 
 ## Generating SSL certificates
 
-### Generate a self-signed certificate authority
-
 <details>
-<summary>Method 1- Generate key first, then CSR, then certificate</summary>
+<summary>Generate a self-signed certificate authority: Method 1 - Generate key first, then CSR, then certificate</summary>
 
+- Generate private key of the self-signed certificate authority
 ```console
 [root@ccyberark ~]# openssl genrsa -out cacert.key 2048
 Generating RSA private key, 2048 bit long modulus (2 primes)
@@ -52,7 +216,7 @@ Email Address []:
 </details>
 
 <details>
-<summary>Method 2 - Generate key and certificate in a single command</summary>
+<summary>Generate a self-signed certificate authority: Method 2 - Generate key and certificate in a single command</summary>
 
 ```console
 [root@ccyberark ~]# openssl req -newkey rsa:2048 -days "365" -nodes -x509 -keyout cacert.key -out cacert.pem
@@ -79,7 +243,8 @@ Email Address []:
 
 </details>
 
-### Generate PVWA certificates
+<details>
+<summary>Generate PVWA certificates</summary>
 
 ```console
 openssl genrsa -out pvwa.key 2048
@@ -88,7 +253,10 @@ echo "subjectAltName=DNS:pvwa.vx,DNS:pvwa1.vx,DNS:pvwa2.vx,DNS:pvwa3.vx" > pvwa-
 openssl x509 -req -in pvwa.csr -CA cacert.pem -CAkey cacert.key -CAcreateserial -days 365 -sha256 -out pvwa.pem -extfile pvwa-openssl.cnf
 ```
 
-### Generate PSMGW certificates
+</details>
+
+<details>
+<summary>Generate PSMGW certificates</summary>
 
 ```console
 openssl genrsa -out psmgw.key 2048
@@ -97,7 +265,10 @@ echo "subjectAltName=DNS:psmgw.vx,DNS:psmgw1.vx,DNS:psmgw2.vx,DNS:psmgw3.vx" > p
 openssl x509 -req -in psmgw.csr -CA cacert.pem -CAkey cacert.key -CAcreateserial -days 365 -sha256 -out psmgw.pem -extfile psmgw-openssl.cnf
 ```
 
-### Generate CCP certificates
+</details>
+
+<details>
+<summary>Generate CCP certificates</summary>
 
 ```console
 openssl genrsa -out ccp.key 2048
@@ -106,7 +277,10 @@ echo "subjectAltName=DNS:ccp.vx,DNS:ccp1.vx,DNS:ccp2.vx,DNS:ccp3.vx" > ccp-opens
 openssl x509 -req -in ccp.csr -CA cacert.pem -CAkey cacert.key -CAcreateserial -days 365 -sha256 -out ccp.pem -extfile ccp-openssl.cnf
 ```
 
-### Generate Conjur certificates
+</details>
+
+<details>
+<summary>Generate Conjur certificates</summary>
 
 ```console
 openssl genrsa -out conjur.key 2048
@@ -115,7 +289,11 @@ echo "subjectAltName=DNS:conjur.vx,DNS:conjur-master.vx,DNS:conjur-standby1.vx,D
 openssl x509 -req -in conjur.csr -CA cacert.pem -CAkey cacert.key -CAcreateserial -days 365 -sha256 -out conjur.pem -extfile conjur-openssl.cnf
 ```
 
-## PVWA
+</details>
+
+## NGINX Configuration Files
+
+### PVWA
 
 <details>
 <summary>Configurations on PVWA servers to capture client IP address</summary>
@@ -196,7 +374,7 @@ stream {
 
 </details>
 
-## PSM
+### PSM
 
 <details>
 <summary>SSL Termination - Not Supported</summary>
@@ -223,7 +401,7 @@ stream {
 
 </details>
 
-## PSMGW
+### PSMGW
 
 Ref: <https://guacamole.apache.org/doc/1.4.0/gug/reverse-proxy.html>
 
@@ -294,7 +472,7 @@ stream {
 
 </details>
 
-## CCP
+### CCP
 
 <details>
 <summary>Configurations on CCP servers to capture client IP address</summary>
@@ -376,7 +554,7 @@ stream {
 
 </details>
 
-## Conjur
+### Conjur
 
 <details>
 <summary>Configurations on Conjur servers to capture client IP address</summary>
