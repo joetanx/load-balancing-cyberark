@@ -9,7 +9,7 @@
 ![image](images/architecture.png)
 
 - For a development environments or small-to-mid enterprise environments, deploying state-of-the-art Application Delivery Controllers (ADCs) may not be an optimize solution.
-- This guide provides an overview on how open source software can be used to load balance CyberArk Servers
+- This guide provides an overview on how open source software can help to load balance CyberArk Servers
 
 # Keepalived Setup
 
@@ -549,7 +549,7 @@ http {
 ```
 
 #### SSL Passthrough
-```
+```console
 load_module /usr/lib64/nginx/modules/ngx_stream_module.so;
 events {}
 stream {
