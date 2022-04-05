@@ -303,12 +303,12 @@ openssl x509 -req -in conjur.csr -CA cacert.pem -CAkey cacert.key -CAcreateseria
 events {}
 http {
   upstream pvwa {
-    server 192.168.17.11:443;
-    server 192.168.17.12:443;
-    server 192.168.17.13:443;
+    server 192.168.0.11:443;
+    server 192.168.0.12:443;
+    server 192.168.0.13:443;
   }
   server {
-    listen 192.168.17.10:443 ssl;
+    listen 192.168.0.10:443 ssl;
     server_name pvwa.vx
 
     ssl on;
@@ -342,12 +342,12 @@ load_module /usr/lib64/nginx/modules/ngx_stream_module.so;
 events {}
 stream {
   upstream pvwa {
-    server 192.168.17.11:443;
-    server 192.168.17.12:443;
-    server 192.168.17.13:443;
+    server 192.168.0.11:443;
+    server 192.168.0.12:443;
+    server 192.168.0.13:443;
   }
   server {
-    listen 192.168.17.10:443;
+    listen 192.168.0.10:443;
     proxy_pass pvwa;
   }
 }
@@ -364,12 +364,12 @@ load_module /usr/lib64/nginx/modules/ngx_stream_module.so;
 events {}
 stream {
   upstream psm {
-    server 192.168.17.21:3389;
-    server 192.168.17.22:3389;
-    server 192.168.17.23:3389;
+    server 192.168.0.21:3389;
+    server 192.168.0.22:3389;
+    server 192.168.0.23:3389;
   }
   server {
-    listen 192.168.17.20:3389;
+    listen 192.168.0.20:3389;
     proxy_pass psm;
   }
 }
@@ -383,12 +383,12 @@ stream {
 events {}
 http {
   upstream psmgw {
-    server 192.168.17.31:443;
-    server 192.168.17.32:443;
-    server 192.168.17.33:443;
+    server 192.168.0.31:443;
+    server 192.168.0.32:443;
+    server 192.168.0.33:443;
   }
   server {
-    listen 192.168.17.30:443 ssl;
+    listen 192.168.0.30:443 ssl;
     server_name psmgw.vx
 
     ssl on;
@@ -426,12 +426,12 @@ load_module /usr/lib64/nginx/modules/ngx_stream_module.so;
 events {}
 stream {
   upstream psmgw {
-    server 192.168.17.31:443;
-    server 192.168.17.32:443;
-    server 192.168.17.33:443;
+    server 192.168.0.31:443;
+    server 192.168.0.32:443;
+    server 192.168.0.33:443;
   }
   server {
-    listen 192.168.17.30:443;
+    listen 192.168.0.30:443;
     proxy_pass psmgw;
   }
 }
@@ -455,12 +455,12 @@ stream {
 events {}
 http {
   upstream ccp {
-    server 192.168.17.41:443;
-    server 192.168.17.42:443;
-    server 192.168.17.43:443;
+    server 192.168.0.41:443;
+    server 192.168.0.42:443;
+    server 192.168.0.43:443;
   }
   server {
-    listen 192.168.17.40:443 ssl;
+    listen 192.168.0.40:443 ssl;
     server_name ccp.vx
 
     ssl on;
@@ -494,12 +494,12 @@ load_module /usr/lib64/nginx/modules/ngx_stream_module.so;
 events {}
 stream {
   upstream ccp {
-    server 192.168.17.41:443;
-    server 192.168.17.42:443;
-    server 192.168.17.43:443;
+    server 192.168.0.41:443;
+    server 192.168.0.42:443;
+    server 192.168.0.43:443;
   }
   server {
-    listen 192.168.17.40:443;
+    listen 192.168.0.40:443;
     proxy_pass ccp;
   }
 }
@@ -517,12 +517,12 @@ podman exec conjur evoke proxy add 192.168.0.50
 events {}
 http {
   upstream conjur {
-    server 192.168.17.51:443;
-    server 192.168.17.52:443;
-    server 192.168.17.53:443;
+    server 192.168.0.51:443;
+    server 192.168.0.52:443;
+    server 192.168.0.53:443;
   }
   server {
-    listen 192.168.17.50:443 ssl;
+    listen 192.168.0.50:443 ssl;
     server_name conjur.vx
 
     ssl on;
@@ -556,12 +556,12 @@ load_module /usr/lib64/nginx/modules/ngx_stream_module.so;
 events {}
 stream {
   upstream conjur {
-    server 192.168.17.51:443;
-    server 192.168.17.52:443;
-    server 192.168.17.53:443;
+    server 192.168.0.51:443;
+    server 192.168.0.52:443;
+    server 192.168.0.53:443;
   }
   server {
-    listen 192.168.17.50:443;
+    listen 192.168.0.50:443;
     proxy_pass conjur;
   }
 }
