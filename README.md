@@ -379,7 +379,7 @@ stream {
 
 #### SSL Termination
 - Ref: <https://guacamole.apache.org/doc/1.4.0/gug/reverse-proxy.html>
-```
+```console
 events {}
 http {
   upstream psmgw {
