@@ -1,7 +1,22 @@
-# Overview
+# Load Balancing CyberArk Servers
+- There are several services in CyberArk products that requires load balancing:
+  - Password Vault Web Access (PVWA): web console for CyberArk PAM
+  - Privilege Session Manager (PSM): jump host and session recording for CyberArk PAM
+  - PSM Gateway (PSMGW): a.k.a. HTML5 Gateway, place in front of PSM to deliver sessions in browser windows
+  - Central Credential Provider (CCP): CyberArk Secrets Manager for static, monolithic, traditional, and COTS applications
+  - Conjur: CyberArk Secrets Manager for DevOps and CI/CD applications
+
 ![image](images/architecture.png)
 
+- For a development environments or small-to-mid enterprise environments, deploying state-of-the-art Application Delivery Controllers (ADCs) may not be an optimize solution.
+- This guide provides an overview on how open source software can be used to load balance CyberArk Servers
+
 # Keepalived Setup
+
+- This load balancer pair setup has 2 parts: the keepalived provides High Availability capabilities to automatically failover the virtual services in event of a node failure
+  - Ref:
+    - <https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/load_balancer_administration/ch-keepalived-overview-vsa>
+    - <https://docs.nginx.com/nginx/admin-guide/high-availability/ha-keepalived/>
 
 ## Install keepalived on both nodes
 ```console
@@ -164,6 +179,12 @@ systemctl enable --now keepalived
 ```
 
 # NGINX Setup
+
+- This load balancer pair setup has 2 parts: the nginx provides reverse proxy and load balancing capabilities to broker connection to, and handle failures for backend CyberArk servers
+  - Ref:
+    - <https://docs.nginx.com/nginx/admin-guide/load-balancer/http-load-balancer/>
+    - <https://docs.nginx.com/nginx/admin-guide/security-controls/terminating-ssl-tcp/>
+    - <https://docs.nginx.com/nginx/admin-guide/load-balancer/tcp-udp-load-balancer/>
 
 - Install NGINX, enable NGINX to listen on ports in SELinux, add firewall rules
 ```console
