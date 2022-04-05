@@ -31,9 +31,7 @@ vi /etc/keepalived/keepalived.conf
 
 ## Keepalived Configuration Files
 
-<details>
-<summary>Master Node Configuration</summary>
-
+### Master Node Configuration
 ```console
 global_defs{
     script_user root
@@ -72,11 +70,7 @@ vrrp_instance VI_1 {
 }
 ```
 
-</details>
-
-<details>
-<summary>Backup Node Configuration</summary>
-
+### Backup Node Configuration
 ```console
 global_defs{
     script_user root
@@ -114,8 +108,6 @@ vrrp_instance VI_1 {
     notify "/usr/libexec/keepalived/nginx-ha-notify.sh"
 }
 ```
-
-</details>
 
 ## Prepare the Notification and Tracking Scripts
 
@@ -203,9 +195,9 @@ nginx -t
 
 ## Generating SSL certificates
 
-<details>
-<summary>Generate a self-signed certificate authority: Method 1 - Generate key first, then CSR, then certificate</summary>
+### Generate a self-signed certificate authority
 
+#### Method 1 - Generate key first, then CSR, then certificate
 - Generate private key of the self-signed certificate authority
 ```console
 [root@ccyberark ~]# openssl genrsa -out cacert.key 2048
@@ -233,12 +225,7 @@ Organizational Unit Name (eg, section) []:
 Common Name (eg, your name or your server's hostname) []:vx Lab Certificate Authority
 Email Address []:
 ```
-
-</details>
-
-<details>
-<summary>Generate a self-signed certificate authority: Method 2 - Generate key and certificate in a single command</summary>
-
+#### Method 2 - Generate key and certificate in a single command
 ```console
 [root@ccyberark ~]# openssl req -newkey rsa:2048 -days "365" -nodes -x509 -keyout cacert.key -out cacert.pem
 Generating a RSA private key
@@ -262,11 +249,7 @@ Common Name (eg, your name or your server's hostname) []:vx Lab Certificate Auth
 Email Address []:
 ```
 
-</details>
-
-<details>
-<summary>Generate PVWA certificates</summary>
-
+### Generate PVWA certificates
 ```console
 openssl genrsa -out pvwa.key 2048
 openssl req -new -key pvwa.key -subj "/CN=CyberArk Password Vault Web Access" -out pvwa.csr
@@ -274,11 +257,7 @@ echo "subjectAltName=DNS:pvwa.vx,DNS:pvwa1.vx,DNS:pvwa2.vx,DNS:pvwa3.vx" > pvwa-
 openssl x509 -req -in pvwa.csr -CA cacert.pem -CAkey cacert.key -CAcreateserial -days 365 -sha256 -out pvwa.pem -extfile pvwa-openssl.cnf
 ```
 
-</details>
-
-<details>
-<summary>Generate PSMGW certificates</summary>
-
+### Generate PSMGW certificates
 ```console
 openssl genrsa -out psmgw.key 2048
 openssl req -new -key psmgw.key -subj "/CN=CyberArk HTML5 Gateway" -out psmgw.csr
@@ -286,11 +265,7 @@ echo "subjectAltName=DNS:psmgw.vx,DNS:psmgw1.vx,DNS:psmgw2.vx,DNS:psmgw3.vx" > p
 openssl x509 -req -in psmgw.csr -CA cacert.pem -CAkey cacert.key -CAcreateserial -days 365 -sha256 -out psmgw.pem -extfile psmgw-openssl.cnf
 ```
 
-</details>
-
-<details>
-<summary>Generate CCP certificates</summary>
-
+### Generate CCP certificates
 ```console
 openssl genrsa -out ccp.key 2048
 openssl req -new -key ccp.key -subj "/CN=CyberArk Central Credential Provider" -out ccp.csr
@@ -298,10 +273,7 @@ echo "subjectAltName=DNS:ccp.vx,DNS:ccp1.vx,DNS:ccp2.vx,DNS:ccp3.vx" > ccp-opens
 openssl x509 -req -in ccp.csr -CA cacert.pem -CAkey cacert.key -CAcreateserial -days 365 -sha256 -out ccp.pem -extfile ccp-openssl.cnf
 ```
 
-</details>
-
-<details>
-<summary>Generate Conjur certificates</summary>
+### Generate Conjur certificates
 
 ```console
 openssl genrsa -out conjur.key 2048
@@ -310,32 +282,22 @@ echo "subjectAltName=DNS:conjur.vx,DNS:conjur-master.vx,DNS:conjur-standby1.vx,D
 openssl x509 -req -in conjur.csr -CA cacert.pem -CAkey cacert.key -CAcreateserial -days 365 -sha256 -out conjur.pem -extfile conjur-openssl.cnf
 ```
 
-</details>
-
 ## NGINX Configuration Files
 
 ### PVWA
 
-<details>
-<summary>Configurations on PVWA servers to capture client IP address</summary>
-
-Configure `HTTP_X_Forwarded_For` on PVWA servers - edit `C:\inetpub\wwwroot\PasswordVault\web.config`
-
-```
+#### Configurations on PVWA servers to capture client IP address
+- Configure `HTTP_X_Forwarded_For` on PVWA servers - edit `C:\inetpub\wwwroot\PasswordVault\web.config`
+```console
   <appSettings>
     ••• other configurations •••
     <add key="LoadBalancerClientAddressHeader" value="HTTP_X_Forwarded_For" />
   </appSettings>
 ```
 
-</details>
-
-<details>
-<summary>SSL Termination</summary>
-
+#### SSL Termination
 ☝️ **Note**: Certificate authentication does not work with SSL Terminated load balancing, use SSL Passthrough if certificate authentication is required
-
-```
+```console
 events {}
 http {
   upstream pvwa {
@@ -372,12 +334,8 @@ http {
 }
 ```
 
-</details>
-
-<details>
-<summary>SSL Passthrough</summary>
-
-```
+#### SSL Passthrough
+```console
 load_module /usr/lib64/nginx/modules/ngx_stream_module.so;
 events {}
 stream {
@@ -393,18 +351,13 @@ stream {
 }
 ```
 
-</details>
-
 ### PSM
 
-<details>
-<summary>SSL Termination - Not Supported</summary>
-</details>
+#### SSL Termination
+- Not Supported
 
-<details>
-<summary>SSL Passthrough</summary>
-
-```
+#### SSL Passthrough
+```console
 load_module /usr/lib64/nginx/modules/ngx_stream_module.so;
 events {}
 stream {
@@ -420,15 +373,10 @@ stream {
 }
 ```
 
-</details>
-
 ### PSMGW
 
-Ref: <https://guacamole.apache.org/doc/1.4.0/gug/reverse-proxy.html>
-
-<details>
-<summary>SSL Termination</summary>
-
+#### SSL Termination
+- Ref: <https://guacamole.apache.org/doc/1.4.0/gug/reverse-proxy.html>
 ```
 events {}
 http {
@@ -470,12 +418,8 @@ http {
 }
 ```
 
-</details>
-
-<details>
-<summary>SSL Passthrough</summary>
-
-```
+#### SSL Passthrough
+```console
 load_module /usr/lib64/nginx/modules/ngx_stream_module.so;
 events {}
 stream {
@@ -491,16 +435,11 @@ stream {
 }
 ```
 
-</details>
-
 ### CCP
 
-<details>
-<summary>Configurations on CCP servers to capture client IP address</summary>
-
-Configure `HTTP_X_Forwarded_For` on CCP servers - edit `C:\inetpub\wwwroot\AIMWebService\web.config`
-
-```
+#### Configurations on CCP servers to capture client IP address
+- Configure `HTTP_X_Forwarded_For` on CCP servers - edit `C:\inetpub\wwwroot\AIMWebService\web.config`
+```console
   <appSettings>
     ••• other configurations •••
     <add key="TrustedProxies" value="192.168.0.40"/>
@@ -508,14 +447,9 @@ Configure `HTTP_X_Forwarded_For` on CCP servers - edit `C:\inetpub\wwwroot\AIMWe
   </appSettings>
 ```
 
-</details>
-
-<details>
-<summary>SSL Termination</summary>
-
+#### SSL Termination
 ☝️ **Note**: Certificate authentication does not work with SSL Terminated load balancing, use SSL Passthrough if certificate authentication is required
-
-```
+```console
 events {}
 http {
   upstream ccp {
@@ -552,12 +486,8 @@ http {
 }
 ```
 
-</details>
-
-<details>
-<summary>SSL Passthrough</summary>
-
-```
+#### SSL Passthrough
+```console
 load_module /usr/lib64/nginx/modules/ngx_stream_module.so;
 events {}
 stream {
@@ -573,23 +503,15 @@ stream {
 }
 ```
 
-</details>
-
 ### Conjur
 
-<details>
-<summary>Configurations on Conjur servers to capture client IP address</summary>
-
+#### Configurations on Conjur servers to capture client IP address
 ```console
 podman exec conjur evoke proxy add 192.168.0.50
 ```
 
-</details>
-
-<details>
-<summary>SSL Termination</summary>
-
-```
+#### SSL Termination
+```console
 events {}
 http {
   upstream conjur {
@@ -626,11 +548,7 @@ http {
 }
 ```
 
-</details>
-
-<details>
-<summary>SSL Passthrough</summary>
-
+#### SSL Passthrough
 ```
 load_module /usr/lib64/nginx/modules/ngx_stream_module.so;
 events {}
@@ -646,5 +564,3 @@ stream {
   }
 }
 ```
-
-</details>
