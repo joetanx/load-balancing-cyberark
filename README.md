@@ -30,7 +30,7 @@ There are several services in CyberArk products that requires load balancing:
 yum -y install keepalived
 ```
 - Edit the keepalived config file `/etc/keepalived/keepalived.conf` **on both nodes**
-  - The respective reference config files for master and backup nodes are in the next [Keepalived Configuration Files Section](#keepalived-configuration-files)
+  - The respective reference config files for master and backup nodes are in the next [Keepalived Configuration Files Section](#12-keepalived-configuration-files)
 ```console
 mv /etc/keepalived/keepalived.conf /etc/keepalived/keepalived.conf.bak
 vi /etc/keepalived/keepalived.conf
@@ -197,7 +197,7 @@ setsebool -P httpd_can_network_connect on
 firewall-cmd --permanent --add-service https && firewall-cmd --reload
 ```
 - Edit the NGINX listener and load balancing config file `/etc/nginx/nginx.conf`
-  - The respective reference config files for PVWA, PSM, PSMGW, CCP and Conjur are in below [NGINX Configuration Files Section](#nginx-configuration-files)
+  - The respective reference config files for PVWA, PSM, PSMGW, CCP and Conjur are in below [NGINX Configuration Files Section](#22-nginx-configuration-files)
 ```console
 mv /etc/nginx/nginx.conf /etc/nginx/nginx.conf.bak
 vi /etc/nginx/nginx.conf
