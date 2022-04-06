@@ -15,17 +15,17 @@ There are several services in CyberArk products that requires load balancing:
 - For development environments or small-to-mid enterprise environments, deploying state-of-the-art Application Delivery Controllers (ADCs) may not be an optimized solution.
 - This guide provides an overview on how open source software can help to load balance CyberArk Servers
 
-# Keepalived Setup
+# 1. Keepalived Setup
 
 - Keepalived provides high availability capabilities to automatically failover the virtual services in event of a node failure
   - Keepalived uses virtual router redundancy protocol (VRRP) to assign the virtual IP to the master node
-  - Keepalived can optionally create Linux Virtual Server (LVS) to perform load balancing, but NGINX or HAProxy is usually chosen for their expansive load balancing options e.g. HTTP SSL termination
+  - Keepalived can optionally create Linux Virtual Server (LVS) to perform load balancing, but NGINX or HAProxy is usually chosen for their expansive load balancing options, e.g. HTTP SSL termination
   - The NGINX service listens on the virtual IPs managed by keepalived
 - Ref:
   - <https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/load_balancer_administration/ch-keepalived-overview-vsa>
   - <https://docs.nginx.com/nginx/admin-guide/high-availability/ha-keepalived/>
 
-## Install keepalived on both nodes
+## 1.1. Install keepalived on both nodes
 ```console
 yum -y install keepalived
 ```
@@ -36,9 +36,9 @@ mv /etc/keepalived/keepalived.conf /etc/keepalived/keepalived.conf.bak
 vi /etc/keepalived/keepalived.conf
 ```
 
-## Keepalived Configuration Files
+## 1.2. Keepalived Configuration Files
 
-### Master Node Configuration
+### 1.2.1. Master Node Configuration
 ```console
 global_defs{
     script_user root
@@ -77,7 +77,7 @@ vrrp_instance VI_1 {
 }
 ```
 
-### Backup Node Configuration
+### 1.2.2. Backup Node Configuration
 ```console
 global_defs{
     script_user root
@@ -116,13 +116,13 @@ vrrp_instance VI_1 {
 }
 ```
 
-## Prepare the Notification and Tracking Scripts
+## 1.3. Prepare the Notification and Tracking Scripts
 
 ☝️ **Note**: keepalived scripts should be placed in `/usr/libexec/keepalived/` where the correct SELinux file context `keepalived_unconfined_script_t` is assigned
 - Trying to get keepalive to run scripts from elsewhere may result in `permission denied` errors
 - Google for `keepalive setenforce 0` and you find that many guides disable SELinux - this script-doesn't-run behaviour is one of the reasons for disabling SELinux
 
-### Tracking Script
+### 1.3.1. Tracking Script
 - Prepare the HA check script **on both nodes**
 ```console
 vi /usr/libexec/keepalived/nginx-ha-check.sh
@@ -138,7 +138,7 @@ exit $?
 chmod +x /usr/libexec/keepalived/nginx-ha-check.sh
 ```
 
-### Notification Script
+### 1.3.2. Notification Script
 - Prepare the HA notify script **on both nodes**
 ```console
 vi /usr/libexec/keepalived/nginx-ha-notify.sh
@@ -171,7 +171,7 @@ esac
 chmod +x /usr/libexec/keepalived/nginx-ha-notify.sh
 ```
 
-## Start Keepalived
+## 1.4. Start Keepalived
 - Allow VRRP communication through firewall and start keepalived service **on both nodes**
 ```console
 firewall-cmd --add-rich-rule='rule protocol value="vrrp" accept' --permanent
@@ -179,7 +179,7 @@ firewall-cmd --reload
 systemctl enable --now keepalived
 ```
 
-# NGINX Setup
+# 2. NGINX Setup
 
 - NGINX provides reverse proxy and load balancing capabilities to broker connection to, and handle failures for backend CyberArk servers
   - A server block is configured for each virtual service, listening on the virtual IP managed by keepalived
@@ -205,9 +205,9 @@ nginx -t
 ```
 - ☝️ **Note**: Do not start or enable the nginx service, the nginix service start/stop are controlled by `nginx-ha-notify` script in keepalived
 
-## Generating SSL certificates
+## 2.1. Generating SSL certificates
 
-### Generate a self-signed certificate authority
+### 2.1.1. Generate a self-signed certificate authority
 
 #### Method 1 - Generate key first, then CSR, then certificate
 - Generate private key of the self-signed certificate authority
@@ -261,7 +261,7 @@ Common Name (eg, your name or your server's hostname) []:vx Lab Certificate Auth
 Email Address []:
 ```
 
-### Generate PVWA certificates
+### 2.1.2. Generate PVWA certificates
 ```console
 openssl genrsa -out pvwa.key 2048
 openssl req -new -key pvwa.key -subj "/CN=CyberArk Password Vault Web Access" -out pvwa.csr
@@ -269,7 +269,7 @@ echo "subjectAltName=DNS:pvwa.vx,DNS:pvwa1.vx,DNS:pvwa2.vx,DNS:pvwa3.vx" > pvwa-
 openssl x509 -req -in pvwa.csr -CA cacert.pem -CAkey cacert.key -CAcreateserial -days 365 -sha256 -out pvwa.pem -extfile pvwa-openssl.cnf
 ```
 
-### Generate PSMGW certificates
+### 2.1.3. Generate PSMGW certificates
 ```console
 openssl genrsa -out psmgw.key 2048
 openssl req -new -key psmgw.key -subj "/CN=CyberArk HTML5 Gateway" -out psmgw.csr
@@ -277,7 +277,7 @@ echo "subjectAltName=DNS:psmgw.vx,DNS:psmgw1.vx,DNS:psmgw2.vx,DNS:psmgw3.vx" > p
 openssl x509 -req -in psmgw.csr -CA cacert.pem -CAkey cacert.key -CAcreateserial -days 365 -sha256 -out psmgw.pem -extfile psmgw-openssl.cnf
 ```
 
-### Generate CCP certificates
+### 2.1.4. Generate CCP certificates
 ```console
 openssl genrsa -out ccp.key 2048
 openssl req -new -key ccp.key -subj "/CN=CyberArk Central Credential Provider" -out ccp.csr
@@ -285,7 +285,7 @@ echo "subjectAltName=DNS:ccp.vx,DNS:ccp1.vx,DNS:ccp2.vx,DNS:ccp3.vx" > ccp-opens
 openssl x509 -req -in ccp.csr -CA cacert.pem -CAkey cacert.key -CAcreateserial -days 365 -sha256 -out ccp.pem -extfile ccp-openssl.cnf
 ```
 
-### Generate Conjur certificates
+### 2.1.5. Generate Conjur certificates
 
 ```console
 openssl genrsa -out conjur.key 2048
@@ -294,9 +294,9 @@ echo "subjectAltName=DNS:conjur.vx,DNS:conjur-master.vx,DNS:conjur-standby1.vx,D
 openssl x509 -req -in conjur.csr -CA cacert.pem -CAkey cacert.key -CAcreateserial -days 365 -sha256 -out conjur.pem -extfile conjur-openssl.cnf
 ```
 
-## NGINX Configuration Files
+## 2.2. NGINX Configuration Files
 
-### PVWA
+### 2.2.1. PVWA
 
 #### Configurations on PVWA servers to capture client IP address
 - Configure `HTTP_X_Forwarded_For` on PVWA servers - edit `C:\inetpub\wwwroot\PasswordVault\web.config`
@@ -363,7 +363,7 @@ stream {
 }
 ```
 
-### PSM
+### 2.2.2. PSM
 
 #### SSL Termination
 - Not Supported
@@ -385,7 +385,7 @@ stream {
 }
 ```
 
-### PSMGW
+### 2.2.3. PSMGW
 
 #### SSL Termination
 - Ref: <https://guacamole.apache.org/doc/1.4.0/gug/reverse-proxy.html>
@@ -447,7 +447,7 @@ stream {
 }
 ```
 
-### CCP
+### 2.2.4. CCP
 
 #### Configurations on CCP servers to capture client IP address
 - Configure `HTTP_X_Forwarded_For` on CCP servers - edit `C:\inetpub\wwwroot\AIMWebService\web.config`
@@ -515,7 +515,7 @@ stream {
 }
 ```
 
-### Conjur
+### 2.2.5. Conjur
 
 #### Configurations on Conjur servers to capture client IP address
 ```console
