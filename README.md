@@ -1,22 +1,29 @@
 # Load Balancing CyberArk Servers
-- There are several services in CyberArk products that requires load balancing:
-  - Password Vault Web Access (PVWA): web console for CyberArk PAM
-  - Privilege Session Manager (PSM): jump host and session recording for CyberArk PAM
-  - PSM Gateway (PSMGW): a.k.a. HTML5 Gateway, place in front of PSM to deliver sessions in browser windows
-  - Central Credential Provider (CCP): CyberArk Secrets Manager for static, monolithic, traditional, and COTS applications
-  - Conjur: CyberArk Secrets Manager for DevOps and CI/CD applications
+
+There are several services in CyberArk products that requires load balancing:
+
+| CyberArk Server | Description |
+| --- | --- |
+| Password Vault Web Access (PVWA)  | Web console for CyberArk PAM |
+| Privilege Session Manager (PSM)  | Jump host and session recording for CyberArk PAM |
+| PSM Gateway (PSMGW)  | Placed in front of PSM to deliver sessions in browser windows, a.k.a. HTML5 Gateway  |
+| Central Credential Provider (CCP) | CyberArk Secrets Manager for static, monolithic, traditional, and COTS applications |
+| Conjur | CyberArk Secrets Manager for DevOps and CI/CD applications |
 
 ![image](images/architecture.png)
 
-- For a development environments or small-to-mid enterprise environments, deploying state-of-the-art Application Delivery Controllers (ADCs) may not be an optimize solution.
+- For development environments or small-to-mid enterprise environments, deploying state-of-the-art Application Delivery Controllers (ADCs) may not be an optimized solution.
 - This guide provides an overview on how open source software can help to load balance CyberArk Servers
 
 # Keepalived Setup
 
-- This load balancer pair setup has 2 parts: the keepalived provides High Availability capabilities to automatically failover the virtual services in event of a node failure
-  - Ref:
-    - <https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/load_balancer_administration/ch-keepalived-overview-vsa>
-    - <https://docs.nginx.com/nginx/admin-guide/high-availability/ha-keepalived/>
+- Keepalived provides high availability capabilities to automatically failover the virtual services in event of a node failure
+  - Keepalived uses virtual router redundancy protocol (VRRP) to assign the virtual IP to the master node
+  - Keepalived can optionally create Linux Virtual Server (LVS) to perform load balancing, but NGINX or HAProxy is usually chosen for their expansive load balancing options e.g. HTTP SSL termination
+  - The NGINX service listens on the virtual IPs managed by keepalived
+- Ref:
+  - <https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/load_balancer_administration/ch-keepalived-overview-vsa>
+  - <https://docs.nginx.com/nginx/admin-guide/high-availability/ha-keepalived/>
 
 ## Install keepalived on both nodes
 ```console
@@ -174,11 +181,14 @@ systemctl enable --now keepalived
 
 # NGINX Setup
 
-- This load balancer pair setup has 2 parts: the nginx provides reverse proxy and load balancing capabilities to broker connection to, and handle failures for backend CyberArk servers
-  - Ref:
-    - <https://docs.nginx.com/nginx/admin-guide/load-balancer/http-load-balancer/>
-    - <https://docs.nginx.com/nginx/admin-guide/security-controls/terminating-ssl-tcp/>
-    - <https://docs.nginx.com/nginx/admin-guide/load-balancer/tcp-udp-load-balancer/>
+- NGINX provides reverse proxy and load balancing capabilities to broker connection to, and handle failures for backend CyberArk servers
+  - A server block is configured for each virtual service, listening on the virtual IP managed by keepalived
+  - NGINX `http` module: for HTTP-based services (PVWA, PSMGW, CCP and Conjur), enables SSL termination
+  - NGINX `stream` module: for TCP/UDP-based services (PVWA, PSM, PSMGW, CCP and Conjur), straightforward SSL passthrough
+- Ref:
+  - <https://docs.nginx.com/nginx/admin-guide/load-balancer/http-load-balancer/>
+  - <https://docs.nginx.com/nginx/admin-guide/security-controls/terminating-ssl-tcp/>
+  - <https://docs.nginx.com/nginx/admin-guide/load-balancer/tcp-udp-load-balancer/>
 
 - Install NGINX, enable NGINX to listen on ports in SELinux, add firewall rules
 ```console
