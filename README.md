@@ -15,6 +15,34 @@ There are several services in CyberArk products that requires load balancing:
 - For development environments or small-to-mid enterprise environments, deploying state-of-the-art Application Delivery Controllers (ADCs) may not be an optimized solution.
 - This guide provides an overview on how open source software can help to load balance CyberArk Servers
 
+## Lab Environment
+### Software Versions
+|Software|Version|
+|---|---|
+|CyberArk PAM|12.2|
+|CyberArk CCP|12.2|
+|Conjur|12.5|
+|Load Balancer OS|RHEL 8.5|
+|keepalived|2.1.5|
+|nginx|1.14.1|
+
+### Servers/Networking
+
+
+|Function|Hostname|IP Address|
+|---|---|---|
+|LB|lb{1..2}.vx|192.168.17.{91..92}|
+|PVWA VIP|pvwa.vx|192.168.17.10|
+|PVWA|pvwa{1..3}.vx|192.168.17.{11..13}|
+|PSM VIP|psm.vx|192.168.17.20|
+|PSM|psm{1..3}.vx|192.168.17.{21..23}|
+|PSMGW VIP|psmgw.vx|192.168.17.30|
+|PSMGW|psmgw{1..3}.vx|192.168.17.{31..33}|
+|CCP VIP|ccp.vx|192.168.17.40|
+|CCP|ccp{1..3}.vx|192.168.17.{41..43}|
+|Conjur VIP|conjur.vx|192.168.17.50|
+|Conjur|conjur{1..3}.vx|192.168.17.{51..53}|
+
 # 1. Keepalived Setup
 
 - Keepalived provides high availability capabilities to automatically failover the virtual services in event of a node failure
