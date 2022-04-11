@@ -17,6 +17,7 @@ There are several services in CyberArk products that requires load balancing:
 
 ## Lab Environment
 ### Software Versions
+
 |Software|Version|
 |---|---|
 |CyberArk PAM|12.2|
@@ -27,7 +28,6 @@ There are several services in CyberArk products that requires load balancing:
 |nginx|1.14.1|
 
 ### Servers/Networking
-
 
 |Function|Hostname|IP Address|
 |---|---|---|
