@@ -545,12 +545,13 @@ stream {
 
 ### 2.2.5. Conjur
 
-#### Configurations on Conjur servers to capture client IP address
+#### Configurations on Conjur servers to capture client IP address (for SSL Terminated load balancing)
 ```console
 podman exec conjur evoke proxy add 192.168.0.50
 ```
 
 #### SSL Termination
+☝️ **Note**: CSR functions on `authn-k8s` does not work with SSL Terminated load balancing, use SSL Passthrough if `authn-k8s` is required
 ```console
 events {}
 http {
