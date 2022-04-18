@@ -146,6 +146,15 @@ vrrp_instance VI_1 {
 
 ## 1.3. Prepare the Notification and Tracking Scripts
 
+- The load balancer pair in this guide has serveral services on HTTPS (PVWA, PSMGW, CCP, Conjur), this means the NGINX configuration needs to listen on the respective virtual IP rather than `0.0.0.0`. Hence, the scripts provided below behaves as such:
+  - Tracking script verify if the node is able to reach the virtual IP
+  - Notification script starts the NGINX service if the node changes to `MASTER`, and stops the NGINX services if the changes to `BACKUP` or `FAULT
+
+- If the load balancer is meant for only 1 service:
+  - The NGINX configuration can be changed to listen on `0.0.0.0`
+  - The NGINX service can be active on both nodes
+  - The NGINX and the tracking and nofication scripts can be modified to be much simpler
+
 ☝️ **Note**: keepalived scripts should be placed in `/usr/libexec/keepalived/` where the correct SELinux file context `keepalived_unconfined_script_t` is assigned
 - Trying to get keepalive to run scripts from elsewhere may result in `permission denied` errors
 - Google for `keepalive setenforce 0` and you find that many guides disable SELinux - this script-doesn't-run behaviour is one of the reasons for disabling SELinux
@@ -155,7 +164,7 @@ vrrp_instance VI_1 {
 ```console
 vi /usr/libexec/keepalived/nginx-ha-check.sh
 ```
-- The HA check script will `curl` to the PVWA virtual IP - thsi script returns `0` if curl is successful
+- The HA check script will `curl` to the PVWA virtual IP - this script returns `0` if curl is successful
 ```console
 #!/bin/bash
 curl -Lk https://192.168.0.10 -o /dev/null -s
@@ -551,7 +560,12 @@ podman exec conjur evoke proxy add 192.168.0.50
 ```
 
 #### SSL Termination
-☝️ **Note**: CSR functions on `authn-k8s` does not work with SSL Terminated load balancing, use SSL Passthrough if `authn-k8s` is required
+☝️ **Note**:
+- The NGINX `http` module doesn't work very well for Conjur:
+  - CSR functions on `authn-k8s` does not work with SSL Terminated load balancing
+  - HTTP-based proxy cannot work with PostgreSQL replication
+- This `http` module based configuration only works for the Conjur UI and basic API functions (such as `authn`)
+- Thus, the `stream` module based configuration below may be more suitable in most environments
 ```console
 events {}
 http {
@@ -594,14 +608,23 @@ http {
 load_module /usr/lib64/nginx/modules/ngx_stream_module.so;
 events {}
 stream {
-  upstream conjur {
+  upstream conjur-http {
     server 192.168.0.51:443;
     server 192.168.0.52:443;
     server 192.168.0.53:443;
   }
+  upstream conjur-postgresql {
+    server 192.168.0.51:5432;
+    server 192.168.0.52:5432;
+    server 192.168.0.53:5432;
+  }
   server {
     listen 192.168.0.50:443;
-    proxy_pass conjur;
+    proxy_pass conjur-http;
+  }
+  server {
+    listen 192.168.0.50:5432;
+    proxy_pass conjur-postgresql;
   }
 }
 ```
