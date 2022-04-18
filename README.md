@@ -402,6 +402,13 @@ stream {
 
 ### 2.2.2. PSM
 
+#### Allow NGINX to listen on RDP port
+- Attempting to bind to ports other than other listed on `http_port_t` will result in `permission denied` because of SELinux, add the required ports to `http_port_t` to enable binding on them
+```console
+yum install -y policycoreutils-python-utils
+semanage port -a -t http_port_t -p tcp 3389
+```
+
 #### SSL Termination
 - Not Supported
 
@@ -557,6 +564,14 @@ stream {
 #### Configurations on Conjur servers to capture client IP address (for SSL Terminated load balancing)
 ```console
 podman exec conjur evoke proxy add 192.168.0.50
+```
+
+#### Allow NGINX to listen on PostgreSQL port
+- Attempting to bind to ports other than other listed on `http_port_t` will result in `permission denied` because of SELinux, add the required ports to `http_port_t` to enable binding on them
+- Notice that `-m` modify is used here in contrast to `-a` add used in above PSM configuration, this is because port `5432` is already configured for `postgresql_port_t`
+```console
+yum install -y policycoreutils-python-utils
+semanage port -m -t http_port_t -p tcp 5432
 ```
 
 #### SSL Termination
