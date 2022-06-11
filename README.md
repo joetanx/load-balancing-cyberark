@@ -581,6 +581,7 @@ semanage port -m -t http_port_t -p tcp 5432
   - HTTP-based proxy cannot work with PostgreSQL replication
 - This `http` module based configuration only works for the Conjur UI and basic API functions (such as `authn`)
 - Thus, the `stream` module based configuration below may be more suitable in most environments
+
 ```console
 events {}
 http {
