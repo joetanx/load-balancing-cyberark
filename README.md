@@ -31,17 +31,17 @@ There are several services in CyberArk products that requires load balancing:
 
 |Function|Hostname|IP Address|
 |---|---|---|
-|LB|lb{1..2}.vx|192.168.17.{91..92}|
-|PVWA VIP|pvwa.vx|192.168.17.10|
-|PVWA|pvwa{1..3}.vx|192.168.17.{11..13}|
-|PSM VIP|psm.vx|192.168.17.20|
-|PSM|psm{1..3}.vx|192.168.17.{21..23}|
-|PSMGW VIP|psmgw.vx|192.168.17.30|
-|PSMGW|psmgw{1..3}.vx|192.168.17.{31..33}|
-|CCP VIP|ccp.vx|192.168.17.40|
-|CCP|ccp{1..3}.vx|192.168.17.{41..43}|
-|Conjur VIP|conjur.vx|192.168.17.50|
-|Conjur|conjur{1..3}.vx|192.168.17.{51..53}|
+|LB|lb{1..2}.vx|192.168.0.{91..92}|
+|PVWA VIP|pvwa.vx|192.168.0.10|
+|PVWA|pvwa{1..3}.vx|192.168.0.{11..13}|
+|PSM VIP|psm.vx|192.168.0.20|
+|PSM|psm{1..3}.vx|192.168.0.{21..23}|
+|PSMGW VIP|psmgw.vx|192.168.0.30|
+|PSMGW|psmgw{1..3}.vx|192.168.0.{31..33}|
+|CCP VIP|ccp.vx|192.168.0.40|
+|CCP|ccp{1..3}.vx|192.168.0.{41..43}|
+|Conjur VIP|conjur.vx|192.168.0.50|
+|Conjur|conjur{1..3}.vx|192.168.0.{51..53}|
 
 # 1. Keepalived Setup
 
