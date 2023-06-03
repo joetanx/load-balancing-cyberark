@@ -76,11 +76,11 @@ vi /etc/keepalived/keepalived.conf
 
 #### 1.2.1. Master Node Configuration
 
-https://github.com/joetanx/load-balancing-cyberark/blob/871361fff6b76e637de7ab7c3f949fbad727f285/keepalived-master.conf#L1-L35
+https://github.com/joetanx/load-balancing-cyberark/blob/3f6d3e20c8f87e81a4f6d59d4d7e5b09c405b1fc/keepalived-master.conf#L1-L35
 
 #### 1.2.2. Backup Node Configuration
 
-https://github.com/joetanx/load-balancing-cyberark/blob/871361fff6b76e637de7ab7c3f949fbad727f285/keepalived-backup.conf#L1-L35
+https://github.com/joetanx/load-balancing-cyberark/blob/14fc9c13af50a1e13c543fd1cbea6b4295c8f2fb/keepalived-backup.conf#L1-L35
 
 ### 1.3. Prepare the Notification and Tracking Scripts
 
