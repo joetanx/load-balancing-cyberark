@@ -147,7 +147,108 @@ firewall-cmd --reload
 systemctl enable --now keepalived
 ```
 
-## 2. NGINX Setup
+<details><summary><h2>2. Preparing certificates</h2></summary>
+
+### 2.1. Generate a self-signed certificate authority
+
+#### Method 1 - Generate key first, then CSR, then certificate
+
+Generate private key of the self-signed certificate authority:
+
+```console
+[root@ccyberark ~]# openssl genrsa -out cacert.key 2048
+Generating RSA private key, 2048 bit long modulus (2 primes)
+...........................................................................+++++
+.......................................+++++
+e is 65537 (0x010001)
+```
+
+Generate certificate of the self-signed certificate authority:
+
+> **Note**: change the common name of the certificate according to your environment
+
+```console
+[root@ccyberark ~]# openssl req -x509 -new -nodes -key cacert.key -days 365 -sha256 -out cacert.pem
+You are about to be asked to enter information that will be incorporated
+into your certificate request.
+What you are about to enter is what is called a Distinguished Name or a DN.
+There are quite a few fields but you can leave some blank
+For some fields there will be a default value,
+If you enter '.', the field will be left blank.
+-----
+Country Name (2 letter code) [XX]:.
+State or Province Name (full name) []:
+Locality Name (eg, city) [Default City]:.
+Organization Name (eg, company) [Default Company Ltd]:.
+Organizational Unit Name (eg, section) []:
+Common Name (eg, your name or your server's hostname) []:vx Lab Certificate Authority
+Email Address []:
+```
+
+#### Method 2 - Generate key and certificate in a single command
+
+```console
+[root@ccyberark ~]# openssl req -newkey rsa:2048 -days "365" -nodes -x509 -keyout cacert.key -out cacert.pem
+Generating a RSA private key
+...............................................+++++
+.........+++++
+writing new private key to 'cacert.key'
+-----
+You are about to be asked to enter information that will be incorporated
+into your certificate request.
+What you are about to enter is what is called a Distinguished Name or a DN.
+There are quite a few fields but you can leave some blank
+For some fields there will be a default value,
+If you enter '.', the field will be left blank.
+-----
+Country Name (2 letter code) [XX]:.
+State or Province Name (full name) []:
+Locality Name (eg, city) [Default City]:.
+Organization Name (eg, company) [Default Company Ltd]:.
+Organizational Unit Name (eg, section) []:
+Common Name (eg, your name or your server's hostname) []:vx Lab Certificate Authority
+Email Address []:
+```
+
+### 2.2. Generate PVWA certificates
+
+```console
+openssl genrsa -out pvwa.key 2048
+openssl req -new -key pvwa.key -subj "/CN=CyberArk Password Vault Web Access" -out pvwa.csr
+echo "subjectAltName=DNS:pvwa.vx,DNS:pvwa1.vx,DNS:pvwa2.vx,DNS:pvwa3.vx" > pvwa-openssl.cnf
+openssl x509 -req -in pvwa.csr -CA cacert.pem -CAkey cacert.key -CAcreateserial -days 365 -sha256 -out pvwa.pem -extfile pvwa-openssl.cnf
+```
+
+### 2.3. Generate PSMGW certificates
+
+```console
+openssl genrsa -out psmgw.key 2048
+openssl req -new -key psmgw.key -subj "/CN=CyberArk HTML5 Gateway" -out psmgw.csr
+echo "subjectAltName=DNS:psmgw.vx,DNS:psmgw1.vx,DNS:psmgw2.vx,DNS:psmgw3.vx" > psmgw-openssl.cnf
+openssl x509 -req -in psmgw.csr -CA cacert.pem -CAkey cacert.key -CAcreateserial -days 365 -sha256 -out psmgw.pem -extfile psmgw-openssl.cnf
+```
+
+### 2.4. Generate CCP certificates
+
+```console
+openssl genrsa -out ccp.key 2048
+openssl req -new -key ccp.key -subj "/CN=CyberArk Central Credential Provider" -out ccp.csr
+echo "subjectAltName=DNS:ccp.vx,DNS:ccp1.vx,DNS:ccp2.vx,DNS:ccp3.vx" > ccp-openssl.cnf
+openssl x509 -req -in ccp.csr -CA cacert.pem -CAkey cacert.key -CAcreateserial -days 365 -sha256 -out ccp.pem -extfile ccp-openssl.cnf
+```
+
+### 2.5. Generate Conjur certificates
+
+```console
+openssl genrsa -out conjur.key 2048
+openssl req -new -key conjur.key -subj "/CN=CyberArk Conjur" -out conjur.csr
+echo "subjectAltName=DNS:conjur.vx,DNS:conjur-master.vx,DNS:conjur-standby1.vx,DNS:conjur-standby2.vx," > conjur-openssl.cnf
+openssl x509 -req -in conjur.csr -CA cacert.pem -CAkey cacert.key -CAcreateserial -days 365 -sha256 -out conjur.pem -extfile conjur-openssl.cnf
+```
+
+</details>
+
+## 3. NGINX Setup
 
 NGINX provides reverse proxy and load balancing capabilities to broker connection to, and handle failures for backend CyberArk servers
 
@@ -181,110 +282,9 @@ nginx -t
 
 > **Note**: Do not start or enable the nginx service, the nginix service start/stop are controlled by `nginx-ha-notify` script in keepalived
 
-### 2.1. Generating SSL certificates
+### 3.1. PVWA
 
-#### 2.1.1. Generate a self-signed certificate authority
-
-##### Method 1 - Generate key first, then CSR, then certificate
-
-Generate private key of the self-signed certificate authority:
-
-```console
-[root@ccyberark ~]# openssl genrsa -out cacert.key 2048
-Generating RSA private key, 2048 bit long modulus (2 primes)
-...........................................................................+++++
-.......................................+++++
-e is 65537 (0x010001)
-```
-
-Generate certificate of the self-signed certificate authority:
-
-> **Note**: change the common name of the certificate according to your environment
-
-```console
-[root@conjur ~]# openssl req -x509 -new -nodes -key cacert.key -days 365 -sha256 -out cacert.pem
-You are about to be asked to enter information that will be incorporated
-into your certificate request.
-What you are about to enter is what is called a Distinguished Name or a DN.
-There are quite a few fields but you can leave some blank
-For some fields there will be a default value,
-If you enter '.', the field will be left blank.
------
-Country Name (2 letter code) [XX]:.
-State or Province Name (full name) []:
-Locality Name (eg, city) [Default City]:.
-Organization Name (eg, company) [Default Company Ltd]:.
-Organizational Unit Name (eg, section) []:
-Common Name (eg, your name or your server's hostname) []:vx Lab Certificate Authority
-Email Address []:
-```
-
-##### Method 2 - Generate key and certificate in a single command
-
-```console
-[root@ccyberark ~]# openssl req -newkey rsa:2048 -days "365" -nodes -x509 -keyout cacert.key -out cacert.pem
-Generating a RSA private key
-...............................................+++++
-.........+++++
-writing new private key to 'cacert.key'
------
-You are about to be asked to enter information that will be incorporated
-into your certificate request.
-What you are about to enter is what is called a Distinguished Name or a DN.
-There are quite a few fields but you can leave some blank
-For some fields there will be a default value,
-If you enter '.', the field will be left blank.
------
-Country Name (2 letter code) [XX]:.
-State or Province Name (full name) []:
-Locality Name (eg, city) [Default City]:.
-Organization Name (eg, company) [Default Company Ltd]:.
-Organizational Unit Name (eg, section) []:
-Common Name (eg, your name or your server's hostname) []:vx Lab Certificate Authority
-Email Address []:
-```
-
-### 2.1.2. Generate PVWA certificates
-
-```console
-openssl genrsa -out pvwa.key 2048
-openssl req -new -key pvwa.key -subj "/CN=CyberArk Password Vault Web Access" -out pvwa.csr
-echo "subjectAltName=DNS:pvwa.vx,DNS:pvwa1.vx,DNS:pvwa2.vx,DNS:pvwa3.vx" > pvwa-openssl.cnf
-openssl x509 -req -in pvwa.csr -CA cacert.pem -CAkey cacert.key -CAcreateserial -days 365 -sha256 -out pvwa.pem -extfile pvwa-openssl.cnf
-```
-
-#### 2.1.3. Generate PSMGW certificates
-
-```console
-openssl genrsa -out psmgw.key 2048
-openssl req -new -key psmgw.key -subj "/CN=CyberArk HTML5 Gateway" -out psmgw.csr
-echo "subjectAltName=DNS:psmgw.vx,DNS:psmgw1.vx,DNS:psmgw2.vx,DNS:psmgw3.vx" > psmgw-openssl.cnf
-openssl x509 -req -in psmgw.csr -CA cacert.pem -CAkey cacert.key -CAcreateserial -days 365 -sha256 -out psmgw.pem -extfile psmgw-openssl.cnf
-```
-
-#### 2.1.4. Generate CCP certificates
-
-```console
-openssl genrsa -out ccp.key 2048
-openssl req -new -key ccp.key -subj "/CN=CyberArk Central Credential Provider" -out ccp.csr
-echo "subjectAltName=DNS:ccp.vx,DNS:ccp1.vx,DNS:ccp2.vx,DNS:ccp3.vx" > ccp-openssl.cnf
-openssl x509 -req -in ccp.csr -CA cacert.pem -CAkey cacert.key -CAcreateserial -days 365 -sha256 -out ccp.pem -extfile ccp-openssl.cnf
-```
-
-#### 2.1.5. Generate Conjur certificates
-
-```console
-openssl genrsa -out conjur.key 2048
-openssl req -new -key conjur.key -subj "/CN=CyberArk Conjur" -out conjur.csr
-echo "subjectAltName=DNS:conjur.vx,DNS:conjur-master.vx,DNS:conjur-standby1.vx,DNS:conjur-standby2.vx," > conjur-openssl.cnf
-openssl x509 -req -in conjur.csr -CA cacert.pem -CAkey cacert.key -CAcreateserial -days 365 -sha256 -out conjur.pem -extfile conjur-openssl.cnf
-```
-
-### 2.2. NGINX Configuration Files
-
-#### 2.2.1. PVWA
-
-##### Configurations on PVWA servers to capture client IP address
+#### Configurations on PVWA servers to capture client IP address
 
 Configure `HTTP_X_Forwarded_For` on PVWA servers - edit `C:\inetpub\wwwroot\PasswordVault\web.config`:
 
@@ -295,19 +295,19 @@ Configure `HTTP_X_Forwarded_For` on PVWA servers - edit `C:\inetpub\wwwroot\Pass
   </appSettings>
 ```
 
-##### SSL Termination
+#### SSL Termination
 
 > **Warning**: Certificate authentication does not work with SSL Terminated load balancing, use SSL Passthrough if certificate authentication is required
 
 https://github.com/joetanx/load-balancing-cyberark/blob/871361fff6b76e637de7ab7c3f949fbad727f285/nginx-pvwa-http.conf#L1-L34
 
-##### SSL Passthrough
+#### SSL Passthrough
 
 https://github.com/joetanx/load-balancing-cyberark/blob/871361fff6b76e637de7ab7c3f949fbad727f285/nginx-pvwa-stream.conf#L1-L13
 
-#### 2.2.2. PSM
+### 3.2. PSM
 
-##### Allow NGINX to listen on RDP port
+#### Allow NGINX to listen on RDP port
 
 Attempting to bind to ports other than other listed on `http_port_t` will result in `permission denied` because of SELinux, add the required ports to `http_port_t` to enable binding on them
 
@@ -316,29 +316,29 @@ yum install -y policycoreutils-python-utils
 semanage port -a -t http_port_t -p tcp 3389
 ```
 
-##### SSL Termination
+#### SSL Termination
 
 Not Supported
 
-##### SSL Passthrough
+#### SSL Passthrough
 
 https://github.com/joetanx/load-balancing-cyberark/blob/871361fff6b76e637de7ab7c3f949fbad727f285/nginx-psm-stream.conf#L1-L13
 
-#### 2.2.3. PSMGW
+### 3.3. PSMGW
 
-##### SSL Termination
+#### SSL Termination
 
 Ref: <https://guacamole.apache.org/doc/1.4.0/gug/reverse-proxy.html>
 
 https://github.com/joetanx/load-balancing-cyberark/blob/871361fff6b76e637de7ab7c3f949fbad727f285/nginx-psmgw-http.conf#L1-L38
 
-##### SSL Passthrough
+#### SSL Passthrough
 
 https://github.com/joetanx/load-balancing-cyberark/blob/871361fff6b76e637de7ab7c3f949fbad727f285/nginx-psmgw-stream.conf#L1-L13
 
-#### 2.2.4. CCP
+### 3.4. CCP
 
-##### Configurations on CCP servers to capture client IP address
+#### Configurations on CCP servers to capture client IP address
 
 Configure `HTTP_X_Forwarded_For` on CCP servers - edit `C:\inetpub\wwwroot\AIMWebService\web.config`:
 
@@ -350,24 +350,24 @@ Configure `HTTP_X_Forwarded_For` on CCP servers - edit `C:\inetpub\wwwroot\AIMWe
   </appSettings>
 ```
 
-##### SSL Termination
+#### SSL Termination
 
 > **Warning**: Certificate authentication does not work with SSL Terminated load balancing, use SSL Passthrough if certificate authentication is required
 
 https://github.com/joetanx/load-balancing-cyberark/blob/871361fff6b76e637de7ab7c3f949fbad727f285/nginx-ccp-http.conf#L1-L34
 
-##### SSL Passthrough
+#### SSL Passthrough
 
 https://github.com/joetanx/load-balancing-cyberark/blob/871361fff6b76e637de7ab7c3f949fbad727f285/nginx-ccp-stream.conf#L1-L13
 
-#### 2.2.5. Conjur
+### 3.5. Conjur
 
-##### Configurations on Conjur servers to capture client IP address (for SSL Terminated load balancing)
+#### Configurations on Conjur servers to capture client IP address (for SSL Terminated load balancing)
 ```console
 podman exec conjur evoke proxy add 192.168.0.50
 ```
 
-##### Allow NGINX to listen on PostgreSQL port
+#### Allow NGINX to listen on PostgreSQL port
 
 Attempting to bind to ports other than other listed on `http_port_t` will result in `permission denied` because of SELinux, add the required ports to `http_port_t` to enable binding on them
 
@@ -378,7 +378,7 @@ yum install -y policycoreutils-python-utils
 semanage port -m -t http_port_t -p tcp 5432
 ```
 
-##### SSL Termination
+#### SSL Termination
 
 > **Warning**:
 >
