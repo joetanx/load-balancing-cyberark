@@ -265,7 +265,7 @@ Ref:
 Install NGINX, enable NGINX to listen on ports in SELinux, add firewall rules:
 
 ```console
-yum -y install nginx
+yum -y install nginx nginx-mod-stream
 setsebool -P httpd_can_network_connect on
 firewall-cmd --permanent --add-service https && firewall-cmd --reload
 ```
